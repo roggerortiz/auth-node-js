@@ -28,6 +28,7 @@
   "eslintConfig": {
     "extends": "standard",
     "rules": {
+      "camelcase": "off",
       "no-unused-vars": "warn"
     }
   }

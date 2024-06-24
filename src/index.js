@@ -14,14 +14,48 @@ app.use(express.json())
 app.use(cookieParser())
 
 app.use((req, res, next) => {
-  const token = req.cookies.access_token
+  const access_token = req.cookies.access_token
 
   try {
-    const data = jwt.verify(token, JWT_SECRET_KEY)
+    const data = jwt.verify(access_token, JWT_SECRET_KEY)
+    req.session = { user: data }
+  } catch (error) {
+    req.session = { error: error.name }
+  }
+
+  if (req.session.user || req.url !== '/protected') {
+    return next()
+  }
+
+  if (req.session.error !== 'TokenExpiredError') {
+    return res.status(403).send('Access not authorized')
+  }
+
+  const refresh_token = req.cookies.refresh_token
+
+  try {
+    const refreshData = jwt.verify(refresh_token, JWT_SECRET_KEY)
+
+    const access_token = jwt.sign(
+      { id: refreshData.id, username: refreshData.username },
+      JWT_SECRET_KEY,
+      { expiresIn: '1h' }
+    )
+    res.cookie('access_token', access_token, {
+      httpOnly: true, // solo desde el servidor
+      sameSite: 'strict', // solo en el mismo dominio
+      secure: isProduction() // solo con https
+    })
+
+    const data = jwt.verify(access_token, JWT_SECRET_KEY)
     req.session = { user: data }
   } catch {}
 
-  next()
+  if (req.session.user) {
+    return next()
+  }
+
+  return res.status(403).send('Access not authorized')
 })
 
 app.get('/', (req, res) => {
@@ -52,20 +86,31 @@ app.post('/login', async (req, res) => {
 
   try {
     const user = await UserRepository.login({ username, password })
-    const token = jwt.sign(
+
+    const access_token = jwt.sign(
       { id: user._id, username: user.username },
       JWT_SECRET_KEY,
-      { expiresIn: '1h' }
+      { expiresIn: 10 }
+    )
+    const refresh_token = jwt.sign(
+      { id: user._id, username: user.username },
+      JWT_SECRET_KEY,
+      { expiresIn: '7d' }
     )
 
     res
-      .cookie('access_token', token, {
+      .cookie('access_token', access_token, {
+        httpOnly: true, // solo desde el servidor
+        sameSite: 'strict', // solo en el mismo dominio
+        secure: isProduction() // solo con https
+      })
+      .cookie('refresh_token', refresh_token, {
         httpOnly: true, // solo desde el servidor
         sameSite: 'strict', // solo en el mismo dominio
         secure: isProduction() // solo con https
       })
       .status(200)
-      .send({ user, token })
+      .send({ user, access_token, refresh_token })
   } catch (error) {
     res.status(401).send(error.message)
   }
