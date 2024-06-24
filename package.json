@@ -1,0 +1,34 @@
+{
+  "name": "auth-node-js",
+  "version": "0.0.1",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22.3.0"
+  },
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "SET NODE_ENV=production && node src/index.js"
+  },
+  "keywords": [],
+  "author": "Rogger Ortiz <rogger.ortiz.br@gmail.com> (https://github.com/roggerortiz)",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "5.1.1",
+    "cookie-parser": "1.4.6",
+    "db-local": "3.1.0",
+    "ejs": "3.1.10",
+    "express": "4.19.2",
+    "jsonwebtoken": "9.0.2"
+  },
+  "devDependencies": {
+    "standard": "17.1.0"
+  },
+  "eslintConfig": {
+    "extends": "standard",
+    "rules": {
+      "no-unused-vars": "warn"
+    }
+  }
+}
